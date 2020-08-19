@@ -1,0 +1,40 @@
+/*
+#ffdecf
+#ba7967
+#5e6f64
+#3f4441
+*/
+:root {
+  --dark: #3f4441;
+  --background: #ffdecf;
+  --text: #5e6f64;
+  --hover: #ba7967;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--text)
+}
+
+.top-title {
+  padding: 20px 10px;
+  padding-left: 1rem;
+  text-align: center;
+}
+
+.contact {
+  padding-left: 2rem;
+  padding-right: 2rem;
+  text-align: center;
+}
+
+.contact-button {
+  background-color: var(--dark);
+  color: #fff;
+}
+.contact-button:hover {
+  color: var(--hover);
+}
+.footer {
+  text-align: center;
+}

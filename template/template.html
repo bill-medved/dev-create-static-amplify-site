@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>{{WebSite}}</title>
+
+  <!-- Boot Strap -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+
+  <!-- Our style sheet -->
+  <link rel="stylesheet" href="css/styles.css">
+
+  <!-- JS, Popper.js, and jQuery -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
+</head>
+
+<body>
+
+  <div class="row">
+    <div class="col-lg-6 col-md-6 top-title">
+      <h1>{{WebSite}}.com</h1>
+      <h2>Potential future site.</h2>
+    </div>
+    <div class="col-lg-6 col-md-6 top-title">
+      <img src="" alt="{{WebSite}} Holder Image">
+    </div>
+  </div>
+
+  <div class="contact">
+    <p>
+      Contact Site Admin for more information about {{WebSite}}
+    </p>
+
+    <form>
+      <div class="form-group">
+        <label for="InputNameLabel">Name</label>
+        <input type="text" class="form-control" id="formNameInput" placeholder="Enter name">
+      </div>
+      <div class="form-group">
+        <label for="InputPhoneLabel">Phone</label>
+        <input type="phone" class="form-control" id="formPhoneInput" placeholder="Enter phone number">
+      </div>
+      <div class="form-group">
+        <label for="InputEmailLabel">Email</label>
+        <input type="email" class="form-control" id="formEmailInput" aria-describedby="emailHelp" placeholder="Enter email">
+        <small id="emailHelp" class="form-text text-muted">We'll never share your email with anyone else.</small>
+      </div>
+      <div class="form-group">
+        <label for="TextAreaLabel">How can we help?</label>
+        <textarea class="form-control" id="formTextAreaInput" rows="3"></textarea>
+      </div>
+      <button type="button" onClick="submitToAPI(event)" class="btn btn-lg contact-button">Submit</button>
+    </form>
+  </div>
+
+  <!-- Footer -->
+  <hr />
+  <div class="footer">
+    <small id="emailHelp" class="form-text text-muted">© Copyright 2020 {{WebSite}}.com</small>
+  </div>
+
+</body>
+
+</html>

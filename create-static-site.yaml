@@ -1,0 +1,70 @@
+
+# Reference: https://aws.amazon.com/blogs/mobile/deploy-a-vuejs-app-with-aws-amplify-console-using-cloudformation/
+# Reference: https://www.trek10.com/blog/amplify-console-static-hosting-feature-review
+# Reference: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/dynamic-references.html
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Stack creation for static Amplify Website with github repository of same name'
+
+Parameters:
+
+  Domain:
+    Description: The unique site name - apex
+    Type: String
+    Default: defaultsitename
+    AllowedPattern: "[\\x20-\\x7E]*"
+    ConstraintDescription: Can contain only ASCII characters.
+
+  Repository:
+    Type: String
+    Description: GitHub Repository html_url
+ 
+Resources:
+  AmplifyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - amplify.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: Amplify
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: "amplify:*"
+                Resource: "*"
+  AmplifyApp:
+    Type: "AWS::Amplify::App"
+    Properties:
+      Name: !Ref Domain
+      Repository: !Ref Repository
+      Description: Automated Application Deployment
+      OauthToken: '{{resolve:secretsmanager:GitHub-manage:SecretString:read_token}}'
+      AutoBranchCreationConfig:
+        EnableAutoBranchCreation: True
+        EnableAutoBuild: True
+      Tags:
+        - Key: Name
+          Value: !Ref Domain
+      IAMServiceRole: !GetAtt AmplifyRole.Arn
+  AmplifyBranch:
+    Type: AWS::Amplify::Branch
+    Properties:
+      BranchName: master
+      AppId: !GetAtt AmplifyApp.AppId
+      Description: master
+      EnableAutoBuild: true
+      Tags:
+        - Key: Name
+          Value: master
+
+Outputs:
+  DefaultDomain:
+    Value: !GetAtt AmplifyApp.DefaultDomain
