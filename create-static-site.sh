@@ -23,7 +23,7 @@ wait_for_Amplify_application ()
     AMPLIFY_APP_JSON=""
 
     echo "Waiting for Amplify application to be created within AWS"
-    until [[ ! -z "$AMPLIFY_APP_JSON"]
+    until [[ ! -z "$AMPLIFY_APP_JSON"]]
     do
         AMPLIFY_APP_JSON=$(aws amplify list-apps --region $AWS_REGION | jq '.apps[] | select(.name == '\"$DOMAIN\"')')
         sleep 10
