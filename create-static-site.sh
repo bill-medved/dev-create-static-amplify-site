@@ -87,7 +87,7 @@ if [[ $1 == '--help' ]]; then
     exit 1
 fi
 
-if [[ $1 == "" ]]
+if [ -z $1 ]
   then
     echo "you must supply at least one argument - the site domain name."
     echo "use --help for more information."
@@ -138,7 +138,7 @@ echo "$(date +"%m-%d-%Y-%T") create $DOMAIN in region $AWS_REGION"  | tee -a $LO
 
 GH=$(aws secretsmanager get-secret-value --region $AWS_REGION --secret-id $SECRET_ID)
 
-if [[ $GH == "" ]]
+if [ -z $GH ]
     then
         echo "Unable to find Secret Manager github $SECRET_ID in $AWS_REGION"
         exit 1
@@ -146,7 +146,7 @@ fi
 
 # Used to create github repsiotry:
 CREATE_TOKEN=$(echo $GH | jq --raw-output .SecretString | jq -r ."${CREATE_KEY}")
-if [[ $CREATE_TOKEN == "" ]]
+if [ -z $CREATE_TOKEN ]
     then
         echo "Unable to find Secret Manager github token $CREATE_KEY in $AWS_REGION"
         exit 1
@@ -154,7 +154,7 @@ fi
 
 # Used for Amplify access to github respository
 READ_TOKEN=$(echo $GH | jq --raw-output .SecretString | jq -r ."${READ_KEY}")
-if [[ $READ_TOKEN == "" ]]
+if [ -z $READ_TOKEN ]
     then
         echo "Unable to find Secret Manager github token $READ_KEY in $AWS_REGION"
         exit 1
@@ -191,7 +191,7 @@ echo "Static Web Site">"Readme.MD"
 # The next section makes an assumption that the template.html
 # will be rewritten as index.html.  template.html is deleted after sed
 # template file.  {{WebSite}} will be replaced with $DOMAIN
-# If you want to transform your static website from the template, this is 
+# If you want to transform a static website from the template, this is 
 # where you would accomplish this work
 
 sed "s/{{WebSite}}/$DOMAIN/g" template.html > index.html
@@ -216,7 +216,7 @@ aws cloudformation create-stack --stack-name $DOMAIN --template-body file://./$C
 
 wait_for_Amplify_application
 
-if  [[ $APPLICATION_URL == "" ]]
+if  [ -z $APPLICATION_URL ]
 then
     echo "Unable to look up defaultDomain $APP_ID"  | tee -a $LOG_FILE
 else
