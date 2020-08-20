@@ -141,7 +141,7 @@ echo "$(date +"%m-%d-%Y-%T") create $DOMAIN in region $AWS_REGION"  | tee -a $LO
 
 GH=$(aws secretsmanager get-secret-value --region $AWS_REGION --secret-id $SECRET_ID)
 
-if [ -v GH ] | [ -z "$GH" ]
+if [ "${GH:-0}" == 0 ]
     then
         echo "Unable to find Secret Manager github $SECRET_ID in $AWS_REGION"
         exit 1
@@ -149,7 +149,7 @@ fi
 
 # Used to create github repsiotry:
 CREATE_TOKEN=$(echo $GH | jq --raw-output .SecretString | jq -r ."${CREATE_KEY}")
-if [ -v CREATE_TOKEN ] | [ -z "$CREATE_TOKEN" ]
+if [ "${CREATE_TOKEN:-0}" == 0 ]
     then
         echo "Unable to find Secret Manager github token $CREATE_KEY in $AWS_REGION"
         exit 1
@@ -157,7 +157,7 @@ fi
 
 # Used for Amplify access to github respository
 READ_TOKEN=$(echo $GH | jq --raw-output .SecretString | jq -r ."${READ_KEY}")
-if [ -v READ_TOKEN ] | [ -z "$READ_TOKEN" ]
+if [ "${READ_TOKEN:-0}" == 0 ]
     then
         echo "Unable to find Secret Manager github token $READ_KEY in $AWS_REGION"
         exit 1
@@ -169,6 +169,11 @@ fi
 # change next line: \"private\": false
 
 RGH=$(curl -s -i -H "Authorization: token ${CREATE_TOKEN}" -H "Content-Type: application/json" https://api.github.com/user/repos -d "{\"name\": \"${DOMAIN}\", \"description\": \"${DESCRIPTION}\", \"private\": true, \"has_issues\": true, \"has_downloads\": true, \"has_wiki\": false}")
+if [ "${RGH:-0}" == 0 ]
+    then
+        echo "Unable to create github repository"
+        exit 1
+fi
 
 # Strip out response header and get SSH URL for github access
 
