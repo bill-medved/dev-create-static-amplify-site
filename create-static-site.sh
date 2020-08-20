@@ -19,7 +19,9 @@
 wait_for_Amplify_application ()
 {
     local COUNTER=0
-    AMPLIFY_APP_JSON=
+    # Set to empty string
+    AMPLIFY_APP_JSON=""
+
     echo "Waiting for Amplify application to be created within AWS"
     until [[ ! -z "$AMPLIFY_APP_JSON"]
     do
@@ -45,7 +47,8 @@ wait_for_Amplify_application ()
 wait_for_Amplify_branch ()
 {
     local COUNTER=0
-    BRANCH_ARN=
+    # Set to empty string
+    BRANCH_ARN=""
     echo "Waiting for Amplify branch to be created within AWS"
     until [[ ! -z "$BRANCH_ARN" ]]
     do
@@ -138,7 +141,7 @@ echo "$(date +"%m-%d-%Y-%T") create $DOMAIN in region $AWS_REGION"  | tee -a $LO
 
 GH=$(aws secretsmanager get-secret-value --region $AWS_REGION --secret-id $SECRET_ID)
 
-if [ -z "$GH" ]
+if [ -v GH ] | [ -z "$GH" ]
     then
         echo "Unable to find Secret Manager github $SECRET_ID in $AWS_REGION"
         exit 1
@@ -146,7 +149,7 @@ fi
 
 # Used to create github repsiotry:
 CREATE_TOKEN=$(echo $GH | jq --raw-output .SecretString | jq -r ."${CREATE_KEY}")
-if [ -z "$CREATE_TOKEN" ]
+if [ -v CREATE_TOKEN ] | [ -z "$CREATE_TOKEN" ]
     then
         echo "Unable to find Secret Manager github token $CREATE_KEY in $AWS_REGION"
         exit 1
@@ -154,7 +157,7 @@ fi
 
 # Used for Amplify access to github respository
 READ_TOKEN=$(echo $GH | jq --raw-output .SecretString | jq -r ."${READ_KEY}")
-if [ -z "$READ_TOKEN" ]
+if [ -v READ_TOKEN ] | [ -z "$READ_TOKEN" ]
     then
         echo "Unable to find Secret Manager github token $READ_KEY in $AWS_REGION"
         exit 1
