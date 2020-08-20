@@ -21,7 +21,7 @@ wait_for_Amplify_application ()
     local COUNTER=0
     AMPLIFY_APP_JSON=
     echo "Waiting for Amplify application to be created within AWS"
-    until [[ $AMPLIFY_APP_JSON != "" ]]
+    until [[ ! -z "$AMPLIFY_APP_JSON"]
     do
         AMPLIFY_APP_JSON=$(aws amplify list-apps --region $AWS_REGION | jq '.apps[] | select(.name == '\"$DOMAIN\"')')
         sleep 10
@@ -47,7 +47,7 @@ wait_for_Amplify_branch ()
     local COUNTER=0
     BRANCH_ARN=
     echo "Waiting for Amplify branch to be created within AWS"
-    until [[ $BRANCH_ARN != "" ]]
+    until [[ ! -z "$BRANCH_ARN" ]]
     do
         sleep 10
         BRANCH_ARN=$(aws amplify get-branch --app-id  $APP_ID --branch-name $BRANCH --region $AWS_REGION)
@@ -87,14 +87,14 @@ if [[ $1 == '--help' ]]; then
     exit 1
 fi
 
-if [ -z $1 ]
+if [ -z "$1" ]
   then
     echo "you must supply at least one argument - the site domain name."
     echo "use --help for more information."
     exit 1
 fi
 
-if [[ ! $2 == "" ]]
+if [[ ! "$2" == "" ]]
     then
         AWS_REGION=$2
 fi
@@ -138,7 +138,7 @@ echo "$(date +"%m-%d-%Y-%T") create $DOMAIN in region $AWS_REGION"  | tee -a $LO
 
 GH=$(aws secretsmanager get-secret-value --region $AWS_REGION --secret-id $SECRET_ID)
 
-if [ -z $GH ]
+if [ -z "$GH" ]
     then
         echo "Unable to find Secret Manager github $SECRET_ID in $AWS_REGION"
         exit 1
@@ -146,7 +146,7 @@ fi
 
 # Used to create github repsiotry:
 CREATE_TOKEN=$(echo $GH | jq --raw-output .SecretString | jq -r ."${CREATE_KEY}")
-if [ -z $CREATE_TOKEN ]
+if [ -z "$CREATE_TOKEN" ]
     then
         echo "Unable to find Secret Manager github token $CREATE_KEY in $AWS_REGION"
         exit 1
@@ -154,7 +154,7 @@ fi
 
 # Used for Amplify access to github respository
 READ_TOKEN=$(echo $GH | jq --raw-output .SecretString | jq -r ."${READ_KEY}")
-if [ -z $READ_TOKEN ]
+if [ -z "$READ_TOKEN" ]
     then
         echo "Unable to find Secret Manager github token $READ_KEY in $AWS_REGION"
         exit 1
@@ -216,7 +216,7 @@ aws cloudformation create-stack --stack-name $DOMAIN --template-body file://./$C
 
 wait_for_Amplify_application
 
-if  [ -z $APPLICATION_URL ]
+if  [ -z "$APPLICATION_URL" ]
 then
     echo "Unable to look up defaultDomain $APP_ID"  | tee -a $LOG_FILE
 else

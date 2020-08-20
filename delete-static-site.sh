@@ -78,7 +78,7 @@ echo "$(date +"%m-%d-%Y-%T") Delete Amplify deploy of $DOMAIN in region $AWS_REG
 
 GH=$(aws secretsmanager get-secret-value --secret-id GitHub-manage --region $AWS_REGION)
 
-if [ -z $GH ]
+if [ -z "$GH" ]
     then
         echo "Unable to find SSM github tokens in $AWS_REGION"
         exit 1
@@ -86,7 +86,7 @@ fi
 
 # github delete token
 GH_TOKEN=$(echo $GH | jq --raw-output .SecretString | jq -r ."${DELETE_KEY}")
-if [ -z $GH_TOKEN ]
+if [ -z "$GH_TOKEN" ]
     then
         echo "Unable to find Secret Manager github delete token $DELETE_KEY in $AWS_REGION"
         exit 1
@@ -94,7 +94,7 @@ fi
 
 # github user
 GH_USER=$(echo $GH | jq --raw-output .SecretString | jq -r ."${SECRET_USER}")
-if [ -z $GH_USER ]
+if [ -z "$GH_USER" ]
     then
         echo "Unable to find Secret Manager github user name $SECRET_USER in $AWS_REGION"
         exit 1
