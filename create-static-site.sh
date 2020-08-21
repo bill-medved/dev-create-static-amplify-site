@@ -19,9 +19,8 @@
 wait_for_Amplify_application ()
 {
     local COUNTER=0
-    # Set to empty string
-    AMPLIFY_APP_JSON=""
 
+    AMPLIFY_APP_JSON=""
     echo "Waiting for Amplify application to be created within AWS"
     until [[ ! -z "$AMPLIFY_APP_JSON" ]]
     do
@@ -47,7 +46,7 @@ wait_for_Amplify_application ()
 wait_for_Amplify_branch ()
 {
     local COUNTER=0
-    # Set to empty string
+
     BRANCH_ARN=""
     echo "Waiting for Amplify branch to be created within AWS"
     until [[ ! -z "$BRANCH_ARN" ]]
@@ -139,25 +138,25 @@ echo "$(date +"%m-%d-%Y-%T") create $DOMAIN in region $AWS_REGION"  | tee -a $LO
 # Use AWS secretsmanager to get secret value for github personal access token and then create 
 # repository with same name as site 
 
-GH=$(aws secretsmanager get-secret-value --region $AWS_REGION --secret-id $SECRET_ID)
+GITHUB_AWS_SECRET=$(aws secretsmanager get-secret-value --region $AWS_REGION --secret-id $SECRET_ID)
 
-if [ "${GH:-0}" == 0 ]
+if [[ "$GITHUB_AWS_SECRET" == null ]] || [[ -z "$GITHUB_AWS_SECRET" ]]
     then
-        echo "Unable to find Secret Manager github $SECRET_ID in $AWS_REGION"
+        echo "Unable to find github Secret Manager entry $SECRET_ID in $AWS_REGION"
         exit 1
 fi
 
 # Used to create github repsiotry:
-CREATE_TOKEN=$(echo $GH | jq --raw-output .SecretString | jq -r ."${CREATE_KEY}")
-if [ "${CREATE_TOKEN:-0}" == 0 ]
+CREATE_TOKEN=$(echo $GITHUB_AWS_SECRET | jq --raw-output .SecretString | jq -r ."${CREATE_KEY}")
+if [[ "$CREATE_TOKEN" == null ]] || [[ -z "$CREATE_TOKEN" ]]
     then
         echo "Unable to find Secret Manager github token $CREATE_KEY in $AWS_REGION"
         exit 1
 fi
 
 # Used for Amplify access to github respository
-READ_TOKEN=$(echo $GH | jq --raw-output .SecretString | jq -r ."${READ_KEY}")
-if [ "${READ_TOKEN:-0}" == 0 ]
+READ_TOKEN=$(echo $GITHUB_AWS_SECRET | jq --raw-output .SecretString | jq -r ."${READ_KEY}")
+if [[ "$READ_TOKEN" == null ]] || [[ -z "$READ_TOKEN" ]]
     then
         echo "Unable to find Secret Manager github token $READ_KEY in $AWS_REGION"
         exit 1
@@ -166,19 +165,21 @@ fi
 # Create the github repository
 # Note repository name is same as DOMIAN, and repository type is private.
 # Repository will have to be public if you don't have a paid github account, then...
-# change next line: \"private\": false
+# change next line: \"private\": false, though I have not tested that use case!
 
-RGH=$(curl -s -i -H "Authorization: token ${CREATE_TOKEN}" -H "Content-Type: application/json" https://api.github.com/user/repos -d "{\"name\": \"${DOMAIN}\", \"description\": \"${DESCRIPTION}\", \"private\": true, \"has_issues\": true, \"has_downloads\": true, \"has_wiki\": false}")
-if [ "${RGH:-0}" == 0 ]
+GITHUB_REPOSITORY=$(curl -s -i -H "Authorization: token ${CREATE_TOKEN}" -H "Content-Type: application/json" https://api.github.com/user/repos -d "{\"name\": \"${DOMAIN}\", \"description\": \"${DESCRIPTION}\", \"private\": true, \"has_issues\": true, \"has_downloads\": true, \"has_wiki\": false}")
+
+if [[ "$GITHUB_REPOSITORY" == null ]] || [[ -z "$GITHUB_REPOSITORY" ]]
     then
         echo "Unable to create github repository"
         exit 1
 fi
 
+
 # Strip out response header and get SSH URL for github access
 
-REPOSITORY_URL=$(echo "{" "${RGH#*{}" | jq --raw-output '.html_url')
-SSH_URL=$(echo "{" "${RGH#*{}" | jq --raw-output '.ssh_url')
+REPOSITORY_URL=$(echo "{" "${GITHUB_REPOSITORY#*{}" | jq --raw-output '.html_url')
+SSH_URL=$(echo "{" "${GITHUB_REPOSITORY#*{}" | jq --raw-output '.ssh_url')
 
 # Copy template static-web site from $TEMPLATE_ROOT
 # Make simple substitutions for domain name in template.html {{WebSite}} and $DOMAIN
@@ -224,7 +225,7 @@ aws cloudformation create-stack --stack-name $DOMAIN --template-body file://./$C
 
 wait_for_Amplify_application
 
-if  [ -z "$APPLICATION_URL" ]
+if [[ "$APPLICATION_URL" == null ]] || [[ -z "$APPLICATION_URL" ]]
 then
     echo "Unable to look up defaultDomain $APP_ID"  | tee -a $LOG_FILE
 else

@@ -76,25 +76,25 @@ echo "$(date +"%m-%d-%Y-%T") Delete Amplify deploy of $DOMAIN in region $AWS_REG
 # Use AWS secretsmanager to get secret value for deletetoken and username,
 # then remove the github repository
 
-GH=$(aws secretsmanager get-secret-value --secret-id GitHub-manage --region $AWS_REGION)
+GITHUB_AWS_SECRET=$(aws secretsmanager get-secret-value --secret-id GitHub-manage --region $AWS_REGION)
 
-if [ "${GH:-0}" == 0 ]
+if [[ "$GITHUB_AWS_SECRET" == null ]] || [[ -z "$GITHUB_AWS_SECRET" ]]
     then
-        echo "Unable to find SSM github tokens in $AWS_REGION"
+        echo "Unable to find AWS Secret Manager github tokens in $AWS_REGION"
         exit 1
 fi
 
 # github delete token
-GH_TOKEN=$(echo $GH | jq --raw-output .SecretString | jq -r ."${DELETE_KEY}")
-if [ "${GH_TOKEN:-0}" == 0 ]
+GH_TOKEN=$(echo $GITHUB_AWS_SECRET | jq --raw-output .SecretString | jq -r ."${DELETE_KEY}")
+if [[ "$GH_TOKEN" == null ]] || [[ -z "$GH_TOKEN" ]]
     then
         echo "Unable to find Secret Manager github delete token $DELETE_KEY in $AWS_REGION"
         exit 1
 fi
 
 # github user
-GH_USER=$(echo $GH | jq --raw-output .SecretString | jq -r ."${SECRET_USER}")
-if [ "${GH_USER:-0}" == 0 ]
+GH_USER=$(echo $GITHUB_AWS_SECRET | jq --raw-output .SecretString | jq -r ."${SECRET_USER}")
+if [[ "$GH_USER" == null ]] || [[ -z "$GH_USER" ]]
     then
         echo "Unable to find Secret Manager github user name $SECRET_USER in $AWS_REGION"
         exit 1
