@@ -6,12 +6,46 @@
 #
 # Please see Readme.MD for background
 #
-# PREREQUISITES:
-#   - github and AWS accounts set up 
-#   - AWS Secret Manager set up with a personal github tokens
-#   - AWS profile set up on your local machine
-#   - github SSH set up on your local machine
-#   - jq and git installed
+
+# Presumes to run this script out of current directory
+BUILD_ROOT=$PWD
+
+# This is where you are going to put the local git repository - source code
+SOURCE_ROOT="/media/psf/Shared/IT/dev/available-sites"
+
+# Location of files that we will use to create the Amplify static website
+TEMPLATE_ROOT=$BUILD_ROOT/template
+
+# Default region unless specified as $2 on command line
+AWS_REGION="us-west-2"
+
+# default branch name to publish.  Note this would require changes in git repository commands as well
+# as the create-static-stie.YAML.  This variable is an FYI, it is not actionable for this POC.
+BRANCH=master
+
+# Cloud formation template used to create the stack.
+CREATE_SITE_TEMPLATE="create-static-site.yaml"
+
+
+# Check parameters 
+
+if [[ $1 == '--help' ]]; then
+    echo "Usage: create-available-site my-domain-name aws-region"
+    echo "if no aws-region is specified, the default is used: $AWS_REGION"
+    exit 1
+fi
+
+if [ -z "$1" ]
+  then
+    echo "you must supply at least one argument - the site domain name."
+    echo "use --help for more information."
+    exit 1
+fi
+
+if [[ ! "$2" == "" ]]
+    then
+        AWS_REGION=$2
+fi
 
 # FUNCTION: wait_for_Amplify_application
 # Wait for Amplify application to be created.  If it is not found within a certain
@@ -63,43 +97,6 @@ wait_for_Amplify_branch ()
     done
     BRANCH_ARN=$(echo $BRANCH_ARN | jq --raw-output '.branch.branchArn')
 }
-
-# Presumes to run this script out of current directory
-BUILD_ROOT=$PWD
-
-# Cloud formation template used to create the stack.
-CREATE_SITE_TEMPLATE="create-static-site.yaml"
-
-# This is where you are going to put the local git repository
-SOURCE_ROOT="/media/psf/Shared/IT/dev/available-sites"
-
-# Location of files that we will use to create the Amplify static website
-TEMPLATE_ROOT=$BUILD_ROOT/template
-
-# Default region unless specified as $2 on command line
-AWS_REGION="us-west-2"
-
-# default branch name to publish.  Note this would require changes in git repository commands as well
-# as the create-static-stie.YAML.  This variable is an FYI, rather than actionable for this POC.
-BRANCH=master
-
-if [[ $1 == '--help' ]]; then
-    echo "Usage: create-available-site my-domain-name aws-region"
-    echo "if no aws-region is specified, the default is used: $AWS_REGION"
-    exit 1
-fi
-
-if [ -z "$1" ]
-  then
-    echo "you must supply at least one argument - the site domain name."
-    echo "use --help for more information."
-    exit 1
-fi
-
-if [[ ! "$2" == "" ]]
-    then
-        AWS_REGION=$2
-fi
 
 # AWS Secret Manager is used to store github personal access token.
 # This token is used in this bash runtime to create a github repository
