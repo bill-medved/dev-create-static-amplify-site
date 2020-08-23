@@ -26,7 +26,6 @@ BRANCH=master
 # Cloud formation template used to create the stack.
 CREATE_SITE_TEMPLATE="create-static-site.yaml"
 
-
 # Check parameters 
 
 if [[ $1 == '--help' ]]; then
@@ -193,6 +192,11 @@ git init
 # which may be public depending on your configuration and github account status
 
 echo "Static Web Site">"Readme.MD"
+
+# TEMPLATE PROCESS - you will want to modify this after you installed
+# your first test amplify.  If you point your TEMPLATE_ROOT to your 
+# local working copy of your source files, then simply remove the 
+# sed and rm template.html commands below!
 
 # The next section makes an assumption that the template.html
 # will be rewritten as index.html.  template.html is deleted after sed
