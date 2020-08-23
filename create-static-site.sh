@@ -178,7 +178,6 @@ REPOSITORY_URL=$(echo "{" "${GITHUB_REPOSITORY#*{}" | jq --raw-output '.html_url
 SSH_URL=$(echo "{" "${GITHUB_REPOSITORY#*{}" | jq --raw-output '.ssh_url')
 
 # Copy template static-web site from $TEMPLATE_ROOT
-# Make simple substitutions for domain name in template.html {{WebSite}} and $DOMAIN
 # Create local git repository, then wire it up to the github repository created above
 
 cp -R $TEMPLATE_ROOT $SOURCE_ROOT/$DOMAIN
@@ -193,19 +192,9 @@ git init
 
 echo "Static Web Site">"Readme.MD"
 
-# TEMPLATE PROCESS - you will want to modify this after you installed
-# your first test amplify.  If you point your TEMPLATE_ROOT to your 
-# local working copy of your source files, then simply remove the 
-# sed and rm template.html commands below!
+# create local git repository with source files copied
+# from template directory
 
-# The next section makes an assumption that the template.html
-# will be rewritten as index.html.  template.html is deleted after sed
-# template file.  {{WebSite}} will be replaced with $DOMAIN
-# If you want to transform a static website from the template, this is 
-# where you would accomplish this work
-
-sed "s/{{WebSite}}/$DOMAIN/g" template.html > index.html
-rm template.html
 git add .
 git commit -m "Initial commit $DOMAIN"
 
