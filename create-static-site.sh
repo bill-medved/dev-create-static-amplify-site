@@ -1,3 +1,4 @@
+#!/bin/bash
 # Reference: https://stedolan.github.io/jq/download/
 # Reference: https://jqplay.org/
 

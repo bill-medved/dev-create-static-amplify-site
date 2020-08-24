@@ -1,3 +1,4 @@
+#!/bin/bash
 # Reference: https://stackoverflow.com/questions/19319516/how-to-delete-a-github-repo-using-the-api
 # Reference: https://docs.github.com/en/rest/reference/repos#delete-a-repository
 
