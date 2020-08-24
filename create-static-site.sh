@@ -8,10 +8,15 @@
 # Please see Readme.MD for background
 #
 
+###########################################################################
+# VARIABLE INITIALIZATION
+
 # Presumes to run this script out of current directory
 BUILD_ROOT=$PWD
 
 # This is where you are going to put the local git repository - source code
+# This script will create the folder $SOURCE_ROOT/#DOMAIN.  If the 
+# folder exists, the script will exit to avoid unwanted overwrites
 SOURCE_ROOT="/media/psf/Shared/IT/dev/available-sites"
 
 # Location of files that we will use to create the Amplify static website
@@ -20,32 +25,30 @@ TEMPLATE_ROOT=$BUILD_ROOT/template
 # Default region unless specified as $2 on command line
 AWS_REGION="us-west-2"
 
-# default branch name to publish.  Note this would require changes in git repository commands as well
-# as the create-static-stie.YAML.  This variable is an FYI, it is not actionable for this POC.
-BRANCH=master
-
 # Cloud formation template used to create the stack.
 CREATE_SITE_TEMPLATE="create-static-site.yaml"
 
-# Check parameters 
+# AWS Secret Manager is used to store github personal access token.
+# This token is used in this bash runtime to create a github repository
+# as well as referenced in the cloud formation YAML file so the github
+# personal token is never stored in a file (only the key name is stored).
+# This token is how Amplify authenticates with github
 
-if [[ $1 == '--help' ]]; then
-    echo "Usage: create-available-site my-domain-name aws-region"
-    echo "if no aws-region is specified, the default is used: $AWS_REGION"
-    exit 1
-fi
+# I would recommend using different names for your AWS secrets.
+# NOTE: If you change the name of the Secret Manager keys below you must change
+# the OAuthToken references in create-static-site.YAML!
 
-if [ -z "$1" ]
-  then
-    echo "you must supply at least one argument - the site domain name."
-    echo "use --help for more information."
-    exit 1
-fi
+SECRET_ID='GitHub-manage'
+CREATE_KEY='create_token'
+READ_KEY='read_token'
+USER_KEY='user_name'
 
-if [[ ! "$2" == "" ]]
-    then
-        AWS_REGION=$2
-fi
+# default branch name to publish.  Note this would require changes in git repository commands as well
+# as the create-static-stie.YAML.  This variable is an FYI, it is not actionable for this POC.
+BRANCH='master'
+
+###########################################################################
+# FUNCTIONS
 
 # FUNCTION: wait_for_Amplify_application
 # Wait for Amplify application to be created.  If it is not found within a certain
@@ -74,7 +77,7 @@ wait_for_Amplify_application ()
 
 }
 
-# FUNCTION: wait_for_Amplify_branch
+# FUNCTION wait_for_Amplify_branch
 # You need both Amplify application branch to be available before
 # kicking off an Amplify job (build)
 wait_for_Amplify_branch ()
@@ -98,39 +101,50 @@ wait_for_Amplify_branch ()
     BRANCH_ARN=$(echo $BRANCH_ARN | jq --raw-output '.branch.branchArn')
 }
 
-# AWS Secret Manager is used to store github personal access token.
-# This token is used in this bash runtime to create a github repository
-# as well as referenced in the cloud formation YAML file so the github
-# personal token is never stored in a file (only the key name is stored).
-# This token is how Amplify authenticates with github
+###########################################################################
+# VERIFY and SETUP
 
-# I would recommend using different names for your AWS secrets.
-# NOTE: If you change the name of the Secret Manager keys below you must change
-# the OAuthToken references in create-static-site.YAML!
+echo "Verify and Setup"
 
-SECRET_ID='GitHub-manage'
-CREATE_KEY='create_token'
-READ_KEY='read_token'
+# Check passed parameters 
 
-# Rough check of parameters ok, so lets start process.  It is important to realize
-# the following items all use the DOMAIN name.  This includes:
-# local and github repository names, and amplify application name.
-# I use "DOMAIN" to refer throughout as the intent is to eventually tie the
-# amplify application to: www.DOMAIN.com
+if [[ $1 == '--help' ]]; then
+    echo "Usage: create-available-site my-domain-name aws-region"
+    echo "if no aws-region is specified, the default is used: $AWS_REGION"
+    exit 1
+fi
 
+if [ -z "$1" ]
+  then
+    echo "you must supply at least one argument - the site domain name."
+    echo "use --help for more information."
+    exit 1
+fi
+
+if [[ ! "$2" == "" ]]
+    then
+        AWS_REGION=$2
+fi
+
+# DOMAIN passed in as $1, is required
 DOMAIN=$1
 
 # putting logfiles on /log subdirectory from BUILDROOT.  Note log files
 # simply overwrite each iteration
-
 [ ! -d "$BUILD_ROOT/log" ] && mkdir "$BUILD_ROOT/log"
 LOG_BASE_FILE="$DOMAIN-$AWS_REGION-create.log"
 LOG_FILE="$BUILD_ROOT/log/$LOG_BASE_FILE" 
 
-# first echo to log file overwrites previous version of log file
 
-echo "Automated CREATE of Amplify Application and associated components" | tee $LOG_FILE
-echo "$(date +"%m-%d-%Y-%T") create $DOMAIN in region $AWS_REGION"  | tee -a $LOG_FILE
+# Make sure DOMAIN source folder doesn't exist, as this script will overwrite it
+if [ -d "$SOURCE_ROOT/$DOMAIN" ]
+    then
+        echo "The folder $DOMAIN at: $SOURCE_ROOT/$DOMAIN already exists."
+        echo "This script overwrites that folder with a copy of whatever is in:"
+        echo "$TEMPLATE_ROOT"
+        echo "Please remove the $DOMAIN folder before executing this script."
+        exit 1
+fi
 
 # Use AWS secretsmanager to get secret value for github personal access token and then create 
 # repository with same name as site 
@@ -159,6 +173,34 @@ if [[ "$READ_TOKEN" == null ]] || [[ -z "$READ_TOKEN" ]]
         exit 1
 fi
 
+# Used to check github respository for existence of repository DOMAIN
+USER_NAME=$(echo $GITHUB_AWS_SECRET | jq --raw-output .SecretString | jq -r ."${USER_KEY}")
+if [[ "$USER_NAME" == null ]] || [[ -z "$USER_NAME" ]]
+    then
+        echo "Unable to find Secret Manager github token $USER_KEY in $AWS_REGION"
+        exit 1
+fi
+
+# Make sure github repository doesn't already exist.  If it exists, it will return
+# a respository id
+GITHUB_CHECK=$(curl -s -i -H "Authorization: token ${READ_TOKEN}" "https://api.github.com/repos/$USER_NAME/$DOMAIN")
+GITHUB_ID=$(echo "{" "${GITHUB_CHECK#*{}" | jq --raw-output '.id')
+
+if [[ "$GITHUB_ID" != null ]]
+    then
+        echo "github repository for $DOMAIN already exists."
+        echo "This script presumes we are creating a new repository in github"
+        exit 1
+fi
+
+###########################################################################
+# EXECUTE
+
+# first echo to log file overwrites previous version of log file
+
+echo "Automated CREATE of Amplify Application and associated components" | tee $LOG_FILE
+echo "$(date +"%m-%d-%Y-%T") create $DOMAIN in region $AWS_REGION"  | tee -a $LOG_FILE
+
 # Create the github repository
 # Note repository name is same as DOMIAN, and repository type is private.
 # Repository will have to be public if you don't have a paid github account, then...
@@ -166,40 +208,28 @@ fi
 
 GITHUB_REPOSITORY=$(curl -s -i -H "Authorization: token ${CREATE_TOKEN}" -H "Content-Type: application/json" https://api.github.com/user/repos -d "{\"name\": \"${DOMAIN}\", \"description\": \"${DESCRIPTION}\", \"private\": true, \"has_issues\": true, \"has_downloads\": true, \"has_wiki\": false}")
 
-export GITHUB_REPOSITORY
-gnome-terminal
-exit 1 
-
 if [[ "$GITHUB_REPOSITORY" == null ]] || [[ -z "$GITHUB_REPOSITORY" ]]
     then
         echo "Unable to create github repository"
         exit 1
 fi
 
-
 # Strip out response header and get SSH URL for github access
 
 REPOSITORY_URL=$(echo "{" "${GITHUB_REPOSITORY#*{}" | jq --raw-output '.html_url')
 SSH_URL=$(echo "{" "${GITHUB_REPOSITORY#*{}" | jq --raw-output '.ssh_url')
 
-# Copy template static-web site from $TEMPLATE_ROOT
-# Create local git repository, then wire it up to the github repository created above
-
-cp -R $TEMPLATE_ROOT $SOURCE_ROOT/$DOMAIN
-cd $SOURCE_ROOT/$DOMAIN
-
-# Local repository create
-
-git init
-
 # You can put as much info into Readme as you like-be aware it will end up on github
 # which may be public depending on your configuration and github account status
 
-echo "Static Web Site">"Readme.MD"
+echo "Static Web Site $DOMAIN">"Readme.MD"
 
 # create local git repository with source files copied
-# from template directory
+# from $TEMPLATE_ROOT
 
+cp -R $TEMPLATE_ROOT $SOURCE_ROOT/$DOMAIN
+cd $SOURCE_ROOT/$DOMAIN
+git init
 git add .
 git commit -m "Initial commit $DOMAIN"
 
@@ -241,6 +271,9 @@ aws amplify start-job --app-id $APP_ID --branch-name $BRANCH --region $AWS_REGIO
 echo "Amplify deployment process kicked off.  This takes time as AWS also"
 echo "deploys Amplify application to cloudfront."
 echo ""
+
+###########################################################################
+# REPORT
 
 # if you have a domain name to associate with the site,
 # please see Amplify and Route53 documenation to create appropriate DNS records

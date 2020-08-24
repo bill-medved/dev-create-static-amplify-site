@@ -2,12 +2,17 @@
 # Reference: https://stackoverflow.com/questions/19319516/how-to-delete-a-github-repo-using-the-api
 # Reference: https://docs.github.com/en/rest/reference/repos#delete-a-repository
 
-# Delete Static Website  CAUTION: There is no recovery from this operation
+# Delete Static Website 
+# WARNING: There is no recovery from this operation
+
 # This script was created for a scenario where the entire static
 # website is created from a template.  If you run this script,
 # you will lose any work done on github, git local, and the Amplify app
 
 # see create-static.sh for addtional details
+
+###########################################################################
+# VARIABLE INITIALIZATION
 
 # Presumes to run this script out of current directory
 DEV_OPS_ROOT=$PWD
@@ -31,7 +36,12 @@ AWS_REGION="us-west-2"
 # create the repo.
 SECRET_ID='GitHub-manage'
 DELETE_KEY='delete_token'
-SECRET_USER='user_name'
+USER_KEY='user_name'
+
+###########################################################################
+# VERIFY and SETUP
+
+echo "Verify and Setup"
 
 if [[ $1 == '--help' ]]; then
     echo "Usage: destroy-static-site my-domain-apex-name aws-region"
@@ -53,12 +63,16 @@ fi
 
 DOMAIN=$1
 
-echo "CAUTION:"
-echo "CAUTION: There is no recovery from this action!"
-echo "CAUTION: "
+# Prompt user:
+
+echo "WARNING:"
+echo "WARNING: There is no recovery from this action!"
+echo "WARNING: "
 echo "The action will delete EVERYTHING related to your deployment of: "
 echo ""
 echo "                   $DOMAIN on $AWS_REGION!"
+echo "EVERYTHING = local git repository and $DOMAIN source folder, github repository,"
+echo "AWS CloudFormation stack and Amplify application."
 echo ""
 read -p "Continue (y/n)?" CONTINUE
 if [ "$CONTINUE" != "y" ]; then
@@ -68,15 +82,11 @@ fi
 
 # Rough check of parameters ok, so lets start process
 LOG_BASE_FILE="$DOMAIN-$AWS_REGION-delete.log"
+
 # keep log file in DEV_OPS_ROOT until completiong them mv to /log
 LOG_FILE="$DEV_OPS_ROOT/log/$LOG_BASE_FILE" 
 
-echo "Automated DELETE of ${DOMAIN} publication"  | tee $LOG_FILE
-echo "$(date +"%m-%d-%Y-%T") Delete Amplify deploy of $DOMAIN in region $AWS_REGION"  | tee -a $LOG_FILE
-
-# Use AWS secretsmanager to get secret value for deletetoken and username,
-# then remove the github repository
-
+# Use AWS secretsmanager to get secret value for delete_token and user_name
 GITHUB_AWS_SECRET=$(aws secretsmanager get-secret-value --secret-id GitHub-manage --region $AWS_REGION)
 
 if [[ "$GITHUB_AWS_SECRET" == null ]] || [[ -z "$GITHUB_AWS_SECRET" ]]
@@ -85,7 +95,7 @@ if [[ "$GITHUB_AWS_SECRET" == null ]] || [[ -z "$GITHUB_AWS_SECRET" ]]
         exit 1
 fi
 
-# github delete token
+# github delete_token
 GH_TOKEN=$(echo $GITHUB_AWS_SECRET | jq --raw-output .SecretString | jq -r ."${DELETE_KEY}")
 if [[ "$GH_TOKEN" == null ]] || [[ -z "$GH_TOKEN" ]]
     then
@@ -93,24 +103,32 @@ if [[ "$GH_TOKEN" == null ]] || [[ -z "$GH_TOKEN" ]]
         exit 1
 fi
 
-# github user
-GH_USER=$(echo $GITHUB_AWS_SECRET | jq --raw-output .SecretString | jq -r ."${SECRET_USER}")
+# github user_name
+GH_USER=$(echo $GITHUB_AWS_SECRET | jq --raw-output .SecretString | jq -r ."${USER_KEY}")
 if [[ "$GH_USER" == null ]] || [[ -z "$GH_USER" ]]
     then
-        echo "Unable to find Secret Manager github user name $SECRET_USER in $AWS_REGION"
+        echo "Unable to find Secret Manager github user name $USER_KEY in $AWS_REGION"
         exit 1
 fi
+
+###########################################################################
+# EXECUTE
+
+echo "Automated DELETE of ${DOMAIN} publication"  | tee $LOG_FILE
+echo "$(date +"%m-%d-%Y-%T") Delete Amplify deploy of $DOMAIN in region $AWS_REGION"  | tee -a $LOG_FILE
 
 # delete cloud formation stack
 aws cloudformation delete-stack --stack-name $DOMAIN --region $AWS_REGION
 
 # Delete github repository
-
 curl -X DELETE \
 -H "Authorization: token ${GH_TOKEN}" \
 https://api.github.com/repos/${GH_USER}/${DOMAIN}
 
 # remove local source files including local git repository
 rm -rf $SOURCE_ROOT/$DOMAIN
+
+###########################################################################
+# REPORT
 
 echo "Delete scheduled - Cloud formation stack delete in progress."  | tee -a $LOG_FILE
