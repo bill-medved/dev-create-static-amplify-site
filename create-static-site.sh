@@ -219,16 +219,15 @@ fi
 REPOSITORY_URL=$(echo "{" "${GITHUB_REPOSITORY#*{}" | jq --raw-output '.html_url')
 SSH_URL=$(echo "{" "${GITHUB_REPOSITORY#*{}" | jq --raw-output '.ssh_url')
 
-# You can put as much info into Readme as you like-be aware it will end up on github
-# which may be public depending on your configuration and github account status
-
-echo "Static Web Site $DOMAIN">"Readme.MD"
-
-# create local git repository with source files copied
-# from $TEMPLATE_ROOT
-
+# Copy files from template to source
 cp -R $TEMPLATE_ROOT $SOURCE_ROOT/$DOMAIN
 cd $SOURCE_ROOT/$DOMAIN
+
+# You can put as much info into Readme as you like-be aware it will end up on github
+# which may be public depending on your configuration and github account status
+echo "Static Web Site $DOMAIN">"Readme.MD"
+
+# Set up local repository
 git init
 git add .
 git commit -m "Initial commit $DOMAIN"

@@ -71,8 +71,9 @@ echo "WARNING: "
 echo "The action will delete EVERYTHING related to your deployment of: "
 echo ""
 echo "                   $DOMAIN on $AWS_REGION!"
-echo "EVERYTHING = local git repository and $DOMAIN source folder, github repository,"
-echo "AWS CloudFormation stack and Amplify application."
+echo ""
+echo "EVERYTHING = local git repository and $DOMAIN source folder,"
+echo "github repository,  and AWS CloudFormation stack and Amplify application."
 echo ""
 read -p "Continue (y/n)?" CONTINUE
 if [ "$CONTINUE" != "y" ]; then
