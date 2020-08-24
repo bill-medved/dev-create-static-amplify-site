@@ -166,6 +166,10 @@ fi
 
 GITHUB_REPOSITORY=$(curl -s -i -H "Authorization: token ${CREATE_TOKEN}" -H "Content-Type: application/json" https://api.github.com/user/repos -d "{\"name\": \"${DOMAIN}\", \"description\": \"${DESCRIPTION}\", \"private\": true, \"has_issues\": true, \"has_downloads\": true, \"has_wiki\": false}")
 
+export GITHUB_REPOSITORY
+gnome-terminal
+exit 1 
+
 if [[ "$GITHUB_REPOSITORY" == null ]] || [[ -z "$GITHUB_REPOSITORY" ]]
     then
         echo "Unable to create github repository"
